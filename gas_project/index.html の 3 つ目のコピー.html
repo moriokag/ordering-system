@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>点眼薬 発注フォーム</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+      padding: 2rem;
+      background: #f9f9f9;
+      color: #333;
+    }
+    h1 {
+      font-size: 1.75rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+    }
+    input[type="text"], select {
+      padding: 0.6rem 1rem;
+      width: 100%;
+      max-width: 600px;
+      font-size: 1rem;
+      margin-bottom: 1.5rem;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      background-color: #fff;
+    }
+    .tabs {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+    .tab {
+      padding: 0.5rem 1rem;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      background: #fff;
+      cursor: pointer;
+    }
+    .tab.active {
+      background-color: #2f80ed;
+      color: #fff;
+      border-color: #2f80ed;
+    }
+    .tab-content {
+      display: none;
+    }
+    .tab-content.active {
+      display: block;
+    }
+    .item {
+      background: #fff;
+      border: 1px solid #e0e0e0;
+      padding: 1.2rem;
+      margin-bottom: 1rem;
+      border-radius: 8px;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+    }
+    .item-image {
+      width: 80px;
+      height: auto;
+      margin-bottom: 0.5rem;
+    }
+    button {
+      margin: 0 0.2rem;
+      padding: 0.3rem 0.6rem;
+      background-color: #f5f5f5;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
+    button:hover {
+      background-color: #eee;
+    }
+    #submit-btn {
+      margin-top: 2rem;
+      padding: 0.75rem 1.5rem;
+      font-size: 1rem;
+      background-color: #2f80ed;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    #submit-btn:hover {
+      background-color: #1c65d1;
+    }
+    .cart-box {
+      background: #fff;
+      border: 1px solid #e0e0e0;
+      padding: 1.2rem;
+      border-radius: 8px;
+      margin-top: 2rem;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+    }
+    .cart-box h3 {
+      font-size: 1.2rem;
+      margin-bottom: 1rem;
+    }
+    .cart-box.empty {
+      background: #f3f3f3;
+      border: 1px dashed #bbb;
+      color: #888;
+      text-align: center;
+    }
+    .item.disabled {
+      background-color: #f2f2f2;
+      opacity: 0.6;
+      pointer-events: none;
+    }
+    .favorite-set-wrapper {
+      transition: background-color 0.2s;
+      padding: 0.5rem;
+      border-radius: 6px;
+    }
+
+    .favorite-set-wrapper:hover {
+      background-color: #f2f6fc;
+    }
+
+    .favorite-set-wrapper button {
+      transition: background-color 0.2s;
+    }
+
+    .favorite-set-wrapper button:hover {
+      background-color: #dceeff;
+    }
+
+    .favorite-set-wrapper input[type="text"]:hover {
+      background-color: #f9f9f9;
+    }
+
+  </style>
+</head>
+<body>
+  <h1>点眼薬・医療資材 発注フォーム</h1>
+  <label for="requester">👤 発注者を選択：</label>
+  <select id="requester">
+    <option value="">-- 発注者を選んでください --</option>
+    <option value="看護師A">看護師A</option>
+    <option value="看護師B">看護師B</option>
+    <option value="看護師C">看護師C</option>
+    <option value="事務スタッフA">事務スタッフA</option>
+    <option value="事務スタッフB">事務スタッフB</option>
+  </select>
+  <input id="searchBox" type="text" placeholder="🔍 商品名・カテゴリ・メーカーで検索" />
+ 
+  <!-- ⭐ お気に入りエリアをここに移動 -->
+  <div style="margin: 1rem 0;">
+    <input type="text" id="favSetName" placeholder="お気に入り名を入力" style="padding: 0.4rem; width: 200px; margin-right: 0.5rem;" />
+    <button onclick="saveFavoriteSet(document.getElementById('favSetName').value)">⭐ お気に入りに保存</button>
+    <div id="favoriteSets" style="margin-top: 0.75rem;"></div>
+  </div>
+
+  <div class="tabs" id="categoryTabs"></div>
+  <div id="items"></div>
+  <div id="cart" class="cart-box empty">🛒 現在の注文：なし</div>
+  <button id="submit-btn" onclick="submitOrder()">📤 発注書をダウンロード</button>
+  <div style="margin-top: 1.5rem;">
+   <input type="text" id="favSetName" placeholder="お気に入り名を入力" style="padding: 0.4rem; width: 200px; margin-right: 0.5rem;" />
+   <button onclick="saveFavoriteSet(document.getElementById('favSetName').value)">⭐ お気に入りに保存</button>
+  </div>
+
+  <div id="favoriteSets" style="margin-top: 1rem;"></div>
+
+
+  <script>
+    const items = <?!= JSON.stringify(items) ?>;
+    let filterText = "";
+    const cart = {};
+
+    function getUniqueCategories() {
+      return [...new Set(items.map(item => item.category))];
+    }
+
+    function renderTabs() {
+      const categories = getUniqueCategories();
+      const tabs = document.getElementById("categoryTabs");
+      tabs.innerHTML = "";
+      categories.forEach((cat, i) => {
+        const tab = document.createElement("div");
+        tab.className = `tab${i === 0 ? " active" : ""}`;
+        tab.innerText = cat;
+        tab.dataset.category = cat;
+        tab.onclick = () => switchTab(cat);
+        tabs.appendChild(tab);
+      });
+    }
+
+    function switchTab(category) {
+      document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+      document.querySelectorAll(".tab-content").forEach(tc => tc.classList.remove("active"));
+      document.querySelector(`.tab[data-category='${category}']`).classList.add("active");
+      document.getElementById(`content-${category}`).classList.add("active");
+    }
+
+    function handleSearch(input) {
+      filterText = input.value.trim();
+      renderItems();
+    }
+
+    function renderItems() {
+      const container = document.getElementById("items");
+      container.innerHTML = "";
+      const grouped = {};
+      items.forEach(item => {
+        if (filterText) {
+          if (
+            !item.name.includes(filterText) &&
+            !item.category.includes(filterText) &&
+            !item.manufacturer.includes(filterText)
+          ) return;
+        }
+
+        if (!grouped[item.category]) grouped[item.category] = [];
+        grouped[item.category].push(item);
+      });
+
+      Object.entries(grouped).forEach(([category, itemList], i) => {
+        const section = document.createElement("div");
+        section.className = `tab-content${i === 0 ? " active" : ""}`;
+        section.id = `content-${category}`;
+        itemList.forEach(item => {
+          const { name, manufacturer, vendor, orderable } = item;
+          const isOrderable = orderable === "可";
+          const disabledAttr = isOrderable ? "" : "disabled";
+          const itemClass = isOrderable ? "item" : "item disabled";
+
+          const itemDiv = document.createElement("div");
+          itemDiv.className = itemClass;
+          const unitQty = parseInt(item.unit) || 1;
+          itemDiv.innerHTML = `
+           <strong>${name}</strong><br>
+           <small>製造元：${manufacturer} ／ 納入業者：${vendor}</small><br>
+           ${!isOrderable ? "<small style='color:gray;'>※現在発注不可</small><br>" : ""}
+           <button onclick='changeQty("${name}", -${unitQty})' ${disabledAttr}>−</button>
+           <input type="number" id="qty-${name}" value="${cart[name] || 0}" min="0" style="width: 4em;" onchange='setQty("${name}", this.value)' ${disabledAttr}>
+           <button onclick='changeQty("${name}", ${unitQty})' ${disabledAttr}>＋</button>
+          `;
+
+          section.appendChild(itemDiv);
+        });
+        container.appendChild(section);
+      });
+    }
+
+    function addToCart(name) {
+      cart[name] = (cart[name] || 0) + 1;
+      updateCartDisplay();
+    }
+
+    function removeFromCart(name) {
+      if (!cart[name]) return;
+      cart[name]--;
+      if (cart[name] <= 0) delete cart[name];
+      updateCartDisplay();
+    }
+
+    function updateCartDisplay() {
+      const cartBox = document.getElementById("cart");
+      const entries = Object.entries(cart);
+      if (entries.length === 0) {
+        cartBox.classList.add("empty");
+        cartBox.innerHTML = "🛒 現在の注文：なし";
+        return;
+      }
+      cartBox.classList.remove("empty");
+      let html = '<h3>🛒 現在の注文</h3><ul>';
+      entries.forEach(([name, qty]) => {
+        html += `<li>${name}：
+          <button onclick='removeFromCart("${name}")'>−</button>
+          <span>${qty}</span> 本
+          <button onclick='addToCart("${name}")'>＋</button>
+        </li>`;
+      });
+      html += '</ul>';
+      cartBox.innerHTML = html;
+    }
+
+    function submitOrder() {
+      const requester = document.getElementById("requester").value;
+      if (!requester) {
+        alert("発注者を選択してください。");
+        return;
+      }
+      const entries = Object.entries(cart);
+      if (entries.length === 0) {
+        alert("注文が空です");
+        return;
+      }
+      let orderText = `■ 発注書\n発注者：${requester}\n` + entries.map(([name, qty]) => `・${name}: ${qty}本`).join("\n");
+      const blob = new Blob([orderText], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "発注書.txt";
+      a.click();
+    }
+
+    function saveFavoriteSet(name) {
+     if (!name) {
+      alert("お気に入り名を入力してください！");
+      return;
+     }
+
+     const sets = JSON.parse(localStorage.getItem('favoriteSets') || '{}');
+
+      if (sets[name]) {
+        const overwrite = confirm(`「${name}」はすでに存在します。上書きしますか？`);
+        if (!overwrite) return;
+      }
+
+     sets[name] = { ...cart }; // 現在のカート内容を保存
+     localStorage.setItem('favoriteSets', JSON.stringify(sets));
+
+     alert(`「${name}」をお気に入りとして保存しました！`);
+     renderFavoriteSets(); // お気に入り一覧を再表示
+   }
+
+    function renderFavoriteSets() {
+      const container = document.getElementById("favoriteSets");
+      const rawSets = JSON.parse(localStorage.getItem("favoriteSets") || "{}");
+      const usageLog = JSON.parse(localStorage.getItem("favoriteUsage") || "{}");
+
+      // 並び替え（最近使った順）
+      const sets = Object.entries(rawSets).sort((a, b) => {
+        const aTime = usageLog[a[0]] || 0;
+        const bTime = usageLog[b[0]] || 0;
+        return bTime - aTime;
+      });
+
+      container.innerHTML = "<h3>⭐ お気に入りセット</h3>";
+
+      sets.forEach(([name, set]) => {
+        if (!set || Object.keys(set).length === 0) return;
+
+        const wrapper = document.createElement("div");
+        wrapper.className = "favorite-set-wrapper";
+        wrapper.style.marginBottom = "1rem";
+
+        const header = document.createElement("div");
+        header.style.display = "flex";
+        header.style.alignItems = "center";
+        header.style.gap = "0.5rem";
+
+        const toggle = document.createElement("span");
+        toggle.textContent = "▶";
+        toggle.style.cursor = "pointer";
+        toggle.style.userSelect = "none";
+        toggle.style.lineHeight = "1";
+        toggle.style.fontSize = "1.2rem";
+
+        const nameInput = document.createElement("input");
+        nameInput.type = "text";
+        nameInput.value = name;
+        nameInput.style.width = "150px";
+        nameInput.style.fontWeight = "bold";
+        nameInput.style.border = "none";
+        nameInput.style.background = "transparent";
+        nameInput.style.cursor = "pointer";
+        nameInput.readOnly = true;
+
+        nameInput.ondblclick = () => {
+          nameInput.readOnly = false;
+          nameInput.style.border = "1px solid #ccc";
+          nameInput.style.background = "#fff";
+          nameInput.focus();
+        };
+
+        nameInput.onblur = () => {
+          nameInput.readOnly = true;
+          nameInput.style.border = "none";
+          nameInput.style.background = "transparent";
+        };
+
+        nameInput.onkeydown = (e) => {
+          if (e.key === "Enter") {
+            const newName = nameInput.value.trim();
+            if (newName && newName !== name) {
+              rawSets[newName] = set;
+              delete rawSets[name];
+              if (usageLog[name]) {
+                usageLog[newName] = usageLog[name];
+                delete usageLog[name];
+              }
+              localStorage.setItem("favoriteSets", JSON.stringify(rawSets));
+              localStorage.setItem("favoriteUsage", JSON.stringify(usageLog));
+              renderFavoriteSets();
+            }
+          }
+        };
+
+        const btn = document.createElement("button");
+        btn.textContent = "📥 呼び出し";
+        btn.style.whiteSpace = "nowrap";
+        btn.style.padding = "0.3rem 0.6rem";
+        btn.onclick = () => {
+          Object.entries(set).forEach(([item, qty]) => {
+            cart[item] = (cart[item] || 0) + qty;
+          });
+          usageLog[name] = Date.now();
+          localStorage.setItem("favoriteUsage", JSON.stringify(usageLog));
+          updateCartDisplay();
+          showSnackbar(`「${name}」を呼び出しました`);
+        };
+
+        const delBtn = document.createElement("button");
+        delBtn.textContent = "🗑️";
+        delBtn.style.whiteSpace = "nowrap";
+        delBtn.style.padding = "0.3rem 0.6rem";
+        delBtn.onclick = () => {
+          if (confirm(`「${name}」を削除してもよいですか？`)) {
+            delete rawSets[name];
+            delete usageLog[name];
+            localStorage.setItem("favoriteSets", JSON.stringify(rawSets));
+            localStorage.setItem("favoriteUsage", JSON.stringify(usageLog));
+            showSnackbar(`「${name}」を削除しました`);
+            renderFavoriteSets();
+          }
+        };
+
+        const detail = document.createElement("ul");
+        detail.style.marginTop = "0.3rem";
+        detail.style.display = "none";
+
+        Object.entries(set).forEach(([itemName, qty]) => {
+          const li = document.createElement("li");
+          const input = document.createElement("input");
+          input.type = "number";
+          input.min = 0;
+          input.value = qty;
+          input.style.width = "4em";
+          input.onchange = () => {
+            const val = Math.max(0, parseInt(input.value) || 0);
+            set[itemName] = val;
+            rawSets[name] = set;
+            localStorage.setItem("favoriteSets", JSON.stringify(rawSets));
+            detail.style.display = "block";
+          };
+
+          li.textContent = `・${itemName}：`;
+          li.appendChild(input);
+          li.append(" 本");
+          detail.appendChild(li);
+        });
+
+        toggle.onclick = () => {
+          const expanded = detail.style.display === "block";
+          detail.style.display = expanded ? "none" : "block";
+          toggle.textContent = expanded ? "▶" : "▼";
+        };
+
+        header.appendChild(toggle);
+        header.appendChild(nameInput);
+        header.appendChild(btn);
+        header.appendChild(delBtn);
+        wrapper.appendChild(header);
+        wrapper.appendChild(detail);
+
+        container.appendChild(wrapper);
+      });
+    }
+
+    function showSnackbar(message) {
+      let bar = document.getElementById("snackbar");
+      if (!bar) {
+        bar = document.createElement("div");
+        bar.id = "snackbar";
+        bar.style.position = "fixed";
+        bar.style.bottom = "20px";
+        bar.style.left = "50%";
+        bar.style.transform = "translateX(-50%)";
+        bar.style.backgroundColor = "#333";
+        bar.style.color = "#fff";
+        bar.style.padding = "0.75rem 1.5rem";
+        bar.style.borderRadius = "8px";
+        bar.style.fontSize = "0.9rem";
+        bar.style.boxShadow = "0 2px 6px rgba(0,0,0,0.2)";
+        bar.style.zIndex = "9999";
+        bar.style.transition = "opacity 0.3s ease";
+        bar.style.opacity = "0";
+        document.body.appendChild(bar);
+      }
+      bar.textContent = message;
+      bar.style.opacity = "1";
+      setTimeout(() => {
+        bar.style.opacity = "0";
+      }, 2000);
+    }
+
+    function toggleFavorite(name) {
+      const el = document.getElementById(`fav-${name}`);
+      el.classList.toggle('active');
+    }
+
+    window.onload = () => {
+      document.getElementById("searchBox").oninput = function() {
+        handleSearch(this);
+      };
+      renderTabs();
+      renderItems();
+      updateCartDisplay();
+      renderFavoriteSets(); 
+    };
+
+   function changeQty(name, delta) {
+    const current = cart[name] || 0;
+    const next = Math.max(0, current + delta);
+    cart[name] = next;
+    document.getElementById(`qty-${name}`).value = next;
+    updateCartDisplay();
+   }
+
+   function setQty(name, value) {
+    const val = Math.max(0, parseInt(value) || 0);
+    cart[name] = val;
+    updateCartDisplay();
+   }
+</script> 
+
+</body>
+</html>
+
+

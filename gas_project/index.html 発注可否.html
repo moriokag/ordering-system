@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>点眼薬・医療資材 発注フォーム</title>
+  <style>
+    /* 基本スタイル */
+    :root {
+      --primary: #2f80ed;
+      --primary-light: #e8f1fd;
+      --primary-dark: #1c65d1;
+      --gray-100: #f8f9fa;
+      --gray-200: #e9ecef;
+      --gray-300: #dee2e6;
+      --gray-400: #ced4da;
+      --gray-500: #adb5bd;
+      --gray-600: #6c757d;
+      --gray-700: #495057;
+      --gray-800: #343a40;
+      --gray-900: #212529;
+      --radius: 8px;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+      padding: 0;
+      margin: 0;
+      background: #f9f9f9;
+      color: var(--gray-800);
+      line-height: 1.5;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 1rem;
+    }
+    
+    header {
+      background-color: white;
+      padding: 1rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      margin-bottom: 2rem;
+    }
+    
+    h1 {
+      font-size: 1.75rem;
+      margin: 0 0 0.5rem 0;
+      color: var(--gray-900);
+    }
+    
+    .header-subtitle {
+      color: var(--gray-600);
+      margin-bottom: 1rem;
+    }
+    
+    /* フォーム要素 */
+    select, input[type="text"] {
+      padding: 0.6rem 1rem;
+      width: 100%;
+      max-width: 600px;
+      font-size: 1rem;
+      margin-bottom: 1rem;
+      border: 1px solid var(--gray-300);
+      border-radius: var(--radius);
+    }
+    
+    /* タブ */
+    .tabs {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+    }
+    
+    .tab {
+      padding: 0.5rem 1rem;
+      border-radius: var(--radius);
+      background: transparent;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .tab:hover {
+      background-color: var(--gray-100);
+    }
+    
+    .tab.active {
+      background-color: var(--primary);
+      color: #fff;
+    }
+    
+    /* 商品リスト */
+    .item-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+    
+    .item {
+      background: white;
+      border: 1px solid var(--gray-300);
+      padding: 1.2rem;
+      border-radius: var(--radius);
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    }
+    
+    /* ボタン */
+    button {
+      padding: 0.5rem 1rem;
+      background: white;
+      border: 1px solid var(--gray-300);
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    button:hover {
+      background: var(--gray-100);
+    }
+    
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+    }
+    
+    .btn-primary:hover {
+      background: var(--primary-dark);
+    }
+    
+    /* カート */
+    .cart-section {
+      background: white;
+      padding: 1.5rem;
+      border-radius: var(--radius);
+      margin: 2rem 0;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    
+    .cart-empty {
+      text-align: center;
+      padding: 2rem;
+      color: var(--gray-600);
+      background: var(--gray-100);
+      border-radius: var(--radius);
+      border: 1px dashed var(--gray-400);
+    }
+    
+    /* お気に入りセクション */
+    .favorite-section {
+      background: white;
+      padding: 1.5rem;
+      border-radius: var(--radius);
+      margin-bottom: 2rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    
+    .favorite-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+    /* お気に入りセットのスタイル*/
+    .favorite-set-detail {
+      margin-top: 0.5rem;
+      font-size: 0.9rem;
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease-out;
+    }
+
+    .favorite-set-detail.show {
+      max-height: 500px;
+    }
+
+    .toggle-icon {
+      cursor: pointer;
+      user-select: none;
+      margin-right: 0.5rem;
+    }
+    
+    .snackbar {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: var(--gray-800);
+      color: white;
+      padding: 0.75rem 1.5rem;
+      border-radius: var(--radius);
+      box-shadow: 0 3px 6px rgba(0,0,0,0.15);
+      z-index: 9999;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .snackbar.success {
+      background-color: #4caf50;
+    }
+    
+    .snackbar.error {
+      background-color: #f44336;
+    }
+
+    /* デバッグエリア */
+    .debug-area {
+      margin-top: 2rem;
+      padding: 1rem;
+      background: #fffde7;
+      border: 1px solid #ffecb3;
+      border-radius: var(--radius);
+      white-space: pre-wrap;
+      font-family: monospace;
+      display: none; /* デフォルトでは非表示 */
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="container">
+      <h1>点眼薬・医療資材 発注フォーム</h1>
+      <p class="header-subtitle">クリニック用品の発注管理システム</p>
+      
+      <select id="requester">
+        <option value="">-- 発注者を選択してください --</option>
+        <option value="看護師A">看護師A</option>
+        <option value="看護師B">看護師B</option>
+        <option value="看護師C">看護師C</option>
+        <option value="事務スタッフA">事務スタッフA</option>
+        <option value="事務スタッフB">事務スタッフB</option>
+      </select>
+    </div>
+  </header>
+  
+  <main class="container">
+    <div style="display: flex; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap;">
+      <div style="flex: 1; min-width: 250px;">
+        <input type="text" id="searchBox" placeholder="🔍 商品名・カテゴリ・メーカーで検索" />
+      </div>
+      <div>
+        <select id="sortOrder" style="width: auto; margin-bottom: 0;">
+          <option value="nameAsc">商品名 (昇順)</option>
+          <option value="nameDesc">商品名 (降順)</option>
+          <option value="manufacturerAsc">製造元 (昇順)</option>
+          <option value="manufacturerDesc">製造元 (降順)</option>
+          <option value="categoryAsc">カテゴリ (昇順)</option>
+        </select>
+      </div>
+    </div>
+    
+    <!-- お気に入りセクション（シンプル版） -->
+    <div class="favorite-section">
+      <div class="favorite-header">
+        <h2>⭐ お気に入りセット</h2>
+        <div>
+          <input type="text" id="favorite-name" placeholder="セット名" style="width: 200px; margin-right: 0.5rem; margin-bottom: 0;">
+          <button id="save-favorite" class="btn-primary">保存</button>
+        </div>
+      </div>
+      
+      <div id="favorite-sets" style="margin-top: 1rem;"></div>
+    </div>
+    
+    <div class="tabs" id="categoryTabs"></div>
+    
+    <div id="items" class="item-grid"></div>
+    
+    <!-- カートセクションのタイトル部分を修正 -->
+    <div class="cart-section">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <h2>🛒 注文内容</h2>
+        <button id="clear-cart">カートをクリア</button>
+      </div>
+      
+      <div id="cart"></div>
+      
+      <button id="submit-btn" class="btn-primary" style="margin-top: 1rem;">
+        📤 発注書を作成する
+      </button>
+    </div>
+    
+    <div id="debug-area" class="debug-area"></div>
+  </main>
+
+  <script>
+    // デバッグモード設定
+    var DEBUG_MODE = true;
+    
+    // デバッグ機能
+    function debugLog(message) {
+      if (!DEBUG_MODE) return;
+      
+      const debugArea = document.getElementById('debug-area');
+      debugArea.style.display = 'block';
+      debugArea.textContent += message + '\n';
+      console.log(message);
+    }
+    
+    // GASから渡されたデータ
+    var items = <?!= JSON.stringify(items) ?>;
+    
+    // グローバル変数
+    var filterText = "";
+    var cart = {};
+    var activeCategory = "all";
+    var sortCriteria = "nameAsc"; // デフォルトの並べ替え条件
+    
+    // 初期化
+    function init() {
+      debugLog("初期化を開始します");
+      debugLog("データ読み込み: " + (items ? items.length : 0) + "件");
+      
+      // データ検証
+      if (!items) {
+        debugLog("警告: itemsがnullまたはundefinedです");
+        items = [];
+      } else if (!Array.isArray(items)) {
+        debugLog("警告: itemsが配列ではありません: " + JSON.stringify(items));
+        try {
+          items = JSON.parse(items); // 文字列の場合はパース
+        } catch (e) {
+          debugLog("エラー: itemsをパースできません: " + e);
+          items = [];
+        }
+      }
+      
+      if (items.length > 0) {
+        debugLog("サンプル商品: " + JSON.stringify(items[0]));
+      }
+      
+      // 検索ボックスのイベント
+      document.getElementById('searchBox').addEventListener('input', function() {
+        filterText = this.value.trim().toLowerCase();
+        renderItems();
+      });
+      
+      // 発注ボタンのイベント
+      document.getElementById('submit-btn').addEventListener('click', submitOrder);
+      
+      // お気に入り保存ボタン
+      document.getElementById('save-favorite').addEventListener('click', function() {
+        const name = document.getElementById('favorite-name').value;
+        saveFavoriteSet(name);
+      });
+      
+      // カテゴリタブの作成
+      renderCategoryTabs();
+      
+      // 商品一覧の描画
+      renderItems();
+      
+      // カート描画
+      updateCartDisplay();
+      
+      // お気に入りセット描画
+      renderFavoriteSets();
+
+      // 並べ替え選択肢のイベントリスナー
+      document.getElementById('sortOrder').addEventListener('change', function() {
+        sortCriteria = this.value;
+        renderItems();
+      });
+      
+      debugLog("初期化が完了しました");
+    }
+    
+    // カテゴリタブの作成
+    function renderCategoryTabs() {
+      const tabsContainer = document.getElementById('categoryTabs');
+      
+      // すべてのカテゴリを取得
+      const categories = ["all"].concat([...new Set(items.map(item => item.category || "未分類"))]);
+      
+      // タブを作成
+      tabsContainer.innerHTML = '';
+      categories.forEach(category => {
+        const tab = document.createElement('div');
+        tab.className = 'tab' + (category === 'all' ? ' active' : '');
+        tab.textContent = category === 'all' ? 'すべて' : category;
+        tab.onclick = function() {
+          document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+          this.classList.add('active');
+          activeCategory = category;
+          renderItems();
+        };
+        tabsContainer.appendChild(tab);
+      });
+      
+      debugLog("カテゴリタブ: " + categories.join(', '));
+    }
+    
+    // 商品一覧の描画
+    function renderItems() {
+      const container = document.getElementById('items');
+      container.innerHTML = '';
+      
+      // フィルター条件に合う商品を表示
+      const filteredItems = items.filter(item => {
+        // カテゴリフィルター
+        if (activeCategory !== 'all' && (item.category || '未分類') !== activeCategory) {
+          return false;
+        }
+        
+        // テキスト検索
+        if (filterText) {
+          const searchFields = [
+            item.name,
+            item.kana,
+            item.category,
+            item.manufacturer,
+            item.vendor,
+            item.note
+          ].filter(Boolean).join(' ').toLowerCase();
+          
+          if (!searchFields.includes(filterText)) {
+            return false;
+          }
+        }
+        
+        return true;
+      });
+      
+      filteredItems = sortItems(filteredItems, sortCriteria);
+      
+      if (filteredItems.length === 0) {
+        container.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 2rem; color: var(--gray-600);">商品が見つかりませんでした</div>';
+        return;
+      }
+      
+      // 商品表示
+      filteredItems.forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'item';
+        
+        const name = item.name || "不明な商品";
+        const manufacturer = item.manufacturer || "不明";
+        const vendor = item.vendor || "不明";
+        const isOrderable = item.orderable !== "否"; // 「不可」以外は発注可能と判断
+        const unitQty = parseInt(item.unit) || 1;
+        const currentQty = cart[name] || 0;
+        const size = item.size ? `【${item.size}】` : "";
+        
+        if (!isOrderable) {
+          div.style.opacity = "0.6";
+          div.style.backgroundColor = "#f5f5f5";
+        }
+        
+        div.innerHTML = `
+          <div style="margin-bottom: 0.5rem;">
+            <strong>${name}</strong> ${size}
+            ${!isOrderable ? '<span style="background: #f8d7da; color: #721c24; padding: 0.1rem 0.5rem; border-radius: 4px; font-size: 0.8rem; margin-left: 0.5rem;">発注不可</span>' : ''}
+          </div>
+          <div style="font-size: 0.9rem; color: #666; margin-bottom: 1rem;">
+            <div>製造元: ${manufacturer}</div>
+            <div>納入業者: ${vendor}</div>
+            ${item.note ? `<div>備考: ${item.note}</div>` : ''}
+          </div>
+          <div>
+            <button onclick="changeQty('${name}', -${unitQty})" ${!isOrderable ? 'disabled' : ''}>−</button>
+            <span style="margin: 0 0.5rem;">${currentQty}</span>
+            <button onclick="changeQty('${name}', ${unitQty})" ${!isOrderable ? 'disabled' : ''}>＋</button>
+          </div>
+        `;
+        
+        container.appendChild(div);
+      });
+    }
+    
+    // 数量変更
+    // 数量変更関数の修正
+    function changeQty(name, delta) {
+      // 該当商品の情報を取得
+      const item = items.find(item => item.name === name);
+      
+      // 注文不可の商品は処理を中断
+      if (item && item.orderable === "不可") {
+        showSnackbar(`「${name}」は現在注文できません`, "error");
+        return;
+      }
+      
+      cart[name] = (cart[name] || 0) + delta;
+      
+      if (cart[name] <= 0) {
+        delete cart[name];
+      }
+      
+      updateCartDisplay();
+      renderItems(); // 数量表示を更新
+    }
+
+    // 並べ替え関数
+    function sortItems(items, criteria) {
+      const sortedItems = [...items]; // 配列をコピー
+      
+      switch (criteria) {
+        case "nameAsc":
+          sortedItems.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+          break;
+        case "nameDesc":
+          sortedItems.sort((a, b) => (b.name || "").localeCompare(a.name || ""));
+          break;
+        case "manufacturerAsc":
+          sortedItems.sort((a, b) => (a.manufacturer || "").localeCompare(b.manufacturer || ""));
+          break;
+        case "manufacturerDesc":
+          sortedItems.sort((a, b) => (b.manufacturer || "").localeCompare(a.manufacturer || ""));
+          break;
+        case "categoryAsc":
+          sortedItems.sort((a, b) => (a.category || "").localeCompare(b.category || ""));
+          break;
+        default:
+          // デフォルトは名前の昇順
+          sortedItems.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+      }
+      
+      return sortedItems;
+    }
+    // カート表示
+    // カート表示関数を改善
+    function updateCartDisplay() {
+      const cartContainer = document.getElementById('cart');
+      const entries = Object.entries(cart);
+      
+      if (entries.length === 0) {
+        cartContainer.innerHTML = '<div class="cart-empty">カートは空です</div>';
+        return;
+      }
+      
+      // 商品の合計点数を計算
+      const totalItems = entries.reduce((sum, [_, qty]) => sum + qty, 0);
+      
+      let html = `
+        <div style="margin-bottom: 0.5rem; text-align: right; color: var(--gray-600);">
+          合計: ${totalItems}点
+        </div>
+        <ul style="list-style: none; padding: 0; margin: 0;">
+      `;
+      
+      entries.forEach(([name, qty]) => {
+        html += `
+          <li style="display: flex; justify-content: space-between; padding: 0.8rem 0; border-bottom: 1px solid var(--gray-200);">
+            <div style="flex: 1; padding-right: 1rem;">${name}</div>
+            <div style="display: flex; align-items: center;">
+              <button onclick="changeQty('${name}', -1)" style="min-width: 2rem;">−</button>
+              <span style="margin: 0 0.5rem; min-width: 1.5rem; text-align: center;">${qty}</span>
+              <button onclick="changeQty('${name}', 1)" style="min-width: 2rem;">＋</button>
+              <button onclick="removeFromCart('${name}')" style="margin-left: 0.5rem; color: var(--gray-600);" title="削除">×</button>
+            </div>
+          </li>
+        `;
+      });
+      
+      html += '</ul>';
+      
+      cartContainer.innerHTML = html;
+    }
+    
+    // 商品をカートから削除
+    function removeFromCart(name) {
+      if (confirm(`「${name}」をカートから削除しますか？`)) {
+        delete cart[name];
+        updateCartDisplay();
+        renderItems(); // 商品リストの数量表示も更新
+        showSnackbar(`「${name}」をカートから削除しました`);
+      }
+    }
+    
+    // お気に入りセット保存
+    function saveFavoriteSet(name) {
+      if (!name) {
+        showSnackbar("セット名を入力してください", "error");
+        return;
+      }
+      
+      if (Object.keys(cart).length === 0) {
+        showSnackbar("カートに商品がありません", "error");
+        return;
+      }
+      
+      // ローカルストレージからお気に入りを取得
+      const sets = JSON.parse(localStorage.getItem('favoriteSets') || '{}');
+      
+      // 既存のセット名なら確認
+      if (sets[name]) {
+        if (!confirm(`「${name}」はすでに存在します。上書きしますか？`)) {
+          return;
+        }
+      }
+      
+      // セットを保存
+      sets[name] = { ...cart };
+      localStorage.setItem('favoriteSets', JSON.stringify(sets));
+      
+      // 入力フィールドをクリア
+      document.getElementById('favorite-name').value = '';
+      
+      // お気に入り一覧を更新
+      renderFavoriteSets();
+      
+      showSnackbar(`「${name}」をお気に入りとして保存しました`, "success");
+    }
+    
+    // お気に入りセット読み込み
+    // お気に入りセット読み込み関数の修正
+    function loadFavoriteSet(name) {
+      const sets = JSON.parse(localStorage.getItem('favoriteSets') || '{}');
+      const set = sets[name];
+      
+      if (!set) return;
+      
+      // 注文不可の商品をチェック
+      const unavailableItems = [];
+      
+      // セットの内容をカートに追加
+      Object.entries(set).forEach(([itemName, qty]) => {
+        // 該当商品が注文可能かチェック
+        const item = items.find(item => item.name === itemName);
+        
+        if (item && item.orderable === "否") {
+          unavailableItems.push(itemName);
+        } else {
+          cart[itemName] = (cart[itemName] || 0) + qty;
+        }
+      });
+      
+      updateCartDisplay();
+      renderItems();
+      
+      if (unavailableItems.length > 0) {
+        showSnackbar(`「${name}」を追加しましたが、${unavailableItems.length}点の商品は現在注文できません`, "error");
+      } else {
+        showSnackbar(`「${name}」をカートに追加しました`, "success");
+      }
+    }
+    
+    // お気に入りセット削除
+    function deleteFavoriteSet(name) {
+      if (!confirm(`「${name}」を削除してもよろしいですか？`)) return;
+      
+      const sets = JSON.parse(localStorage.getItem('favoriteSets') || '{}');
+      delete sets[name];
+      localStorage.setItem('favoriteSets', JSON.stringify(sets));
+      
+      renderFavoriteSets();
+      
+      showSnackbar(`「${name}」を削除しました`, "success");
+    }
+    
+    // お気に入りセット一覧の表示
+    function renderFavoriteSets() {
+      const container = document.getElementById('favorite-sets');
+      const sets = JSON.parse(localStorage.getItem('favoriteSets') || '{}');
+  
+      if (Object.keys(sets).length === 0) {
+        container.innerHTML = '<div style="text-align: center; padding: 1rem; color: var(--gray-600);">お気に入りが登録されていません</div>';
+        return;
+      }
+  
+      let html = '';
+  
+      // 各お気に入りセットを表示
+      Object.entries(sets).forEach(([name, items]) => {
+        if (!items || Object.keys(items).length === 0) return;
+    
+        const totalItems = Object.values(items).reduce((sum, qty) => sum + qty, 0);
+        const detailId = `detail-${name.replace(/\s+/g, '-')}`;
+    
+        html += `
+          <div style="border: 1px solid var(--gray-300); border-radius: var(--radius); padding: 1rem; margin-bottom: 1rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+              <div>
+                <span class="toggle-icon" data-target="${detailId}">▶</span>
+                <strong>${name}</strong>
+                <span style="background: var(--primary-light); color: var(--primary); padding: 0.1rem 0.5rem; border-radius: 10px; font-size: 0.8rem; margin-left: 0.5rem;">${totalItems}点</span>
+              </div>
+              <div>
+                <button onclick="loadFavoriteSet('${name}')">呼び出す</button>
+                <button onclick="deleteFavoriteSet('${name}')" style="margin-left: 0.5rem;">削除</button>
+              </div>
+            </div>
+        
+            <div id="${detailId}" class="favorite-set-detail">
+              ${Object.entries(items).map(([itemName, qty]) => `
+                <div style="display: flex; justify-content: space-between; padding: 0.2rem 0; border-bottom: 1px solid var(--gray-200);">
+                  <span>${itemName}</span>
+                  <span>${qty}個</span>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      });
+  
+      container.innerHTML = html;
+  
+      // 詳細表示のトグル処理を追加
+      document.querySelectorAll('.toggle-icon').forEach(icon => {
+        icon.addEventListener('click', function() {
+          const targetId = this.getAttribute('data-target');
+          const detailElement = document.getElementById(targetId);
+      
+          // 表示状態を切り替え
+          const isShowing = detailElement.classList.contains('show');
+          detailElement.classList.toggle('show');
+      
+          // アイコンを変更
+          this.textContent = isShowing ? '▶' : '▼';
+        });
+      });
+    }
+
+    // スナックバー通知を表示する関数
+    function showSnackbar(message, type = 'default') {
+      // 既存のスナックバーを探す
+      let snackbar = document.getElementById('snackbar');
+      
+      // なければ作成
+      if (!snackbar) {
+        snackbar = document.createElement('div');
+        snackbar.id = 'snackbar';
+        snackbar.className = 'snackbar';
+        document.body.appendChild(snackbar);
+      }
+      
+      // タイプに応じてクラスを設定
+      snackbar.className = 'snackbar';
+      if (type === 'success') {
+        snackbar.classList.add('success');
+      } else if (type === 'error') {
+        snackbar.classList.add('error');
+      }
+      
+      // メッセージを設定
+      snackbar.textContent = message;
+      
+      // 表示する
+      snackbar.style.opacity = '1';
+      
+      // 3秒後に非表示にする
+      setTimeout(() => {
+        snackbar.style.opacity = '0';
+      }, 3000);
+    }
+    // カートクリア機能を追加
+    function clearCart() {
+      if (Object.keys(cart).length === 0) return; // カートが空なら何もしない
+      
+      if (confirm("カートを空にしますか？")) {
+        cart = {}; // カートを空にする
+        updateCartDisplay(); // カート表示を更新
+        renderItems(); // 商品リストの数量表示も更新
+        showSnackbar("カートを空にしました", "success");
+      }
+    }
+    
+    // 初期化時にイベントリスナーを追加
+    // init関数内に以下を追加
+    document.getElementById('clear-cart').addEventListener('click', clearCart);    
+
+    // 発注処理
+    function submitOrder() {
+      const requester = document.getElementById('requester').value;
+      
+      if (!requester) {
+        showSnackbar('発注者を選択してください', "error");
+        document.getElementById('requester').focus();
+        return;
+      }
+      
+      if (Object.keys(cart).length === 0) {
+        showSnackbar('カートに商品がありません', "error");
+        return;
+      }
+      
+      const now = new Date();
+      const orderText = `【点眼薬・医療資材 発注書】\n` +
+                       `発注日時: ${now.toLocaleDateString('ja-JP')} ${now.toLocaleTimeString('ja-JP')}\n` +
+                       `発注者: ${requester}\n\n` +
+                       `■ 発注内容\n` +
+                       Object.entries(cart)
+                         .map(([name, qty]) => `・${name}: ${qty}個`)
+                         .join('\n');
+      
+      const blob = new Blob([orderText], {type: 'text/plain'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `発注書_${now.toLocaleDateString('ja-JP').replace(/\//g, '')}.txt`;
+      a.click();
+
+      showSnackbar('発注書がダウンロードされました', "success");
+    }
+    
+    // ページ読み込み時に初期化
+    window.onload = function() {
+      try {
+        init();
+      } catch (e) {
+        debugLog("初期化エラー: " + e.message);
+        console.error(e);
+      }
+    };
+  </script>
+</body>
+</html>
