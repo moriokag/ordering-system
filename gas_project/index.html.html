@@ -354,6 +354,18 @@
         saveFavoriteSet(name);
       });
       
+      // メニュー表示の切り替え
+      document.getElementById('submit-options-btn').addEventListener('click', function(e) {
+        e.stopPropagation();
+        const menu = document.getElementById('submit-options');
+        menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+      });
+
+      // 画面クリックでメニューを閉じる
+      document.addEventListener('click', function() {
+        document.getElementById('submit-options').style.display = 'none';
+      });
+
       // カテゴリタブの作成
       renderCategoryTabs();
       
@@ -735,6 +747,7 @@
 
     // 発注処理
     // 発注書作成関数を修正
+    clasp push
     function submitOrder(mode = 'all') {
       const requester = document.getElementById('requester').value;
       
