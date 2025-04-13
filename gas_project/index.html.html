@@ -784,7 +784,9 @@
         a.click();
         
         showSnackbar('発注書がダウンロードされました', "success");
-      } else if (mode === 'byVendor') {
+      } 
+      
+      else if (mode === 'byVendor') {
         // ベンダー別に発注書を作成
         const vendorGroups = {};
         
