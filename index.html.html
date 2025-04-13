@@ -224,15 +224,6 @@
     <div class="container">
       <h1>点眼薬・医療資材 発注フォーム</h1>
       <p class="header-subtitle">クリニック用品の発注管理システム</p>
-      
-      <select id="requester">
-        <option value="">-- 発注者を選択してください --</option>
-        <option value="看護師A">看護師A</option>
-        <option value="看護師B">看護師B</option>
-        <option value="看護師C">看護師C</option>
-        <option value="事務スタッフA">事務スタッフA</option>
-        <option value="事務スタッフB">事務スタッフB</option>
-      </select>
     </div>
   </header>
   
@@ -263,28 +254,45 @@
         <button id="clear-cart">カートをクリア</button>
       </div>
       
+      <!-- ここに発注者選択を追加 -->
+      <div style="margin-bottom: 1.5rem;">
+        <label for="requester" style="display: block; margin-bottom: 0.5rem; font-weight: 500;">👤 発注者を選択：</label>
+        <select id="requester" style="width: 100%; max-width: 400px;">
+          <option value="">-- 発注者を選んでください --</option>
+          <option value="看護師A">看護師A</option>
+          <option value="看護師B">看護師B</option>
+          <option value="看護師C">看護師C</option>
+          <option value="事務スタッフA">事務スタッフA</option>
+          <option value="事務スタッフB">事務スタッフB</option>
+        </select>
+      </div>
+      
       <div id="cart"></div>
       
-      <!-- 発注ボタン部分を改良 -->
+      <!-- 発注ボタン部分 -->
       <div style="margin-top: 1rem; display: flex; align-items: center;">
         <button id="submit-btn" class="btn-primary" style="display: flex; align-items: center;">
           <span>📤 発注書を作成する</span>
         </button>
-  
+      
         <div style="position: relative; margin-left: 0.5rem;">
           <button id="output-type-btn" style="display: flex; align-items: center; padding: 0.5rem 1rem;">
             <span id="current-output-type">ベンダー別</span>
             <span style="margin-left: 0.5rem;">▼</span>
           </button>
-    
-          <div id="submit-options" style="display: none; position: absolute; left: 0; top: 100%; background: white; border: 1px solid var(--gray-300); border-radius: var(--radius); box-shadow: 0 2px 8px rgba(0,0,0,0.1); z-index: 100; min-width: 200px;">
+      
+          <div id="submit-options"
+            style="display: none; position: absolute; left: 0; top: 100%; background: white; border: 1px solid var(--gray-300); border-radius: var(--radius); box-shadow: 0 2px 8px rgba(0,0,0,0.1); z-index: 100; min-width: 200px;">
             <div style="padding: 0.5rem; border-bottom: 1px solid var(--gray-200); font-weight: bold;">発注書の作成方法</div>
-            <div class="submit-option" data-mode="byVendor" onclick="changeOutputMode('byVendor'); event.stopPropagation();">ベンダー別に作成</div>
-            <div class="submit-option" data-mode="all" onclick="changeOutputMode('all'); event.stopPropagation();">すべてまとめて作成</div>
+            <div class="submit-option" data-mode="byVendor"
+              onclick="changeOutputMode('byVendor'); event.stopPropagation();">ベンダー別に作成</div>
+            <div class="submit-option" data-mode="all" onclick="changeOutputMode('all'); event.stopPropagation();">すべてまとめて作成
+            </div>
           </div>
         </div>
       </div>
-
+    </div>
+      
       <style>
         .submit-option {
           padding: 0.5rem 1rem;
@@ -765,26 +773,89 @@
       // メニューを閉じる
       document.getElementById('submit-options').style.display = 'none';
     }
-    
     // 発注書作成関数を修正
     function submitOrder(mode = 'all') {
       const requester = document.getElementById('requester').value;
-      
+
       if (!requester) {
         showSnackbar('発注者を選択してください', "error");
         document.getElementById('requester').focus();
         return;
       }
-      
-      if (Object.keys(cart).length === 0) {
+
+      if (Object.entries(cart).length === 0) {
         showSnackbar('カートに商品がありません', "error");
         return;
       }
-      
+
       const now = new Date();
       const dateStr = now.toLocaleDateString('ja-JP');
       const timeStr = now.toLocaleTimeString('ja-JP');
-      
+
+      // ベンダーごとに商品をグループ化
+      const vendorGroups = {};
+
+      // カート内の商品をベンダーごとにグループ化
+      Object.entries(cart).forEach(([name, qty]) => {
+        const item = items.find(i => i.name === name);
+        const vendor = item?.vendor || "不明";
+
+        if (!vendorGroups[vendor]) {
+          vendorGroups[vendor] = [];
+        }
+
+        vendorGroups[vendor].push({ name, qty, item });
+      });
+
+      // スプレッドシートに保存するデータを準備
+      const orderData = {
+        requester: requester,
+        mode: mode,
+        vendorOrders: {}
+      };
+
+      // 各ベンダーの注文データを整形
+      Object.entries(vendorGroups).forEach(([vendor, vendorItems]) => {
+        orderData.vendorOrders[vendor] = vendorItems.map(({ name, qty }) => ({ name, qty }));
+      });
+
+      // Google Apps Scriptに送信
+      if (typeof google !== 'undefined' && google.script) {
+        // ボタンを無効化（重複送信防止）
+        document.getElementById('submit-btn').disabled = true;
+
+        // ローディング表示
+        showSnackbar("発注書を作成しています...");
+
+        google.script.run
+          .withSuccessHandler(function (result) {
+            // 成功時の処理
+            document.getElementById('submit-btn').disabled = false;
+
+            if (result && result.success) {
+              showSnackbar("発注内容がスプレッドシートに記録されました", "success");
+
+              // 発注書ファイルのダウンロード処理へ続行
+              downloadOrderFiles(mode, vendorGroups, requester, dateStr, timeStr);
+            } else {
+              showSnackbar("発注の記録に失敗しました: " + (result?.error || "不明なエラー"), "error");
+            }
+          })
+          .withFailureHandler(function (error) {
+            // エラー処理
+            document.getElementById('submit-btn').disabled = false;
+            showSnackbar("発注の記録に失敗しました: " + error, "error");
+          })
+          .saveOrderToSheet(orderData);
+      } else {
+        // GASが利用できない場合（ローカル開発環境など）
+        console.log("スプレッドシートへの記録をスキップ（Google Apps Scriptが利用できません）");
+        downloadOrderFiles(mode, vendorGroups, requester, dateStr, timeStr);
+      }
+    }
+
+    // 発注書ファイルのダウンロード処理を分離
+    function downloadOrderFiles(mode, vendorGroups, requester, dateStr, timeStr) {
       if (mode === 'all') {
         // すべてまとめて一つの発注書を作成
         let orderText = `【点眼薬・医療資材 発注書】\n`;
@@ -794,32 +865,16 @@
         orderText += Object.entries(cart)
           .map(([name, qty]) => `・${name}: ${qty}個`)
           .join('\n');
-        
-        const blob = new Blob([orderText], {type: 'text/plain'});
+
+        const blob = new Blob([orderText], { type: 'text/plain' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
         a.download = `発注書_${dateStr.replace(/\//g, '')}.txt`;
         a.click();
-        
+
         showSnackbar('発注書がダウンロードされました', "success");
       } else if (mode === 'byVendor') {
-        // ベンダー別に発注書を作成
-        const vendorGroups = {};
-        let unknownVendorItems = [];
-        
-        // カート内の商品をベンダーごとにグループ化
-        Object.entries(cart).forEach(([name, qty]) => {
-          const item = items.find(i => i.name === name);
-          const vendor = item?.vendor || "不明";
-          
-          if (!vendorGroups[vendor]) {
-            vendorGroups[vendor] = [];
-          }
-          
-          vendorGroups[vendor].push({ name, qty, item });
-        });
-        
         // 各ベンダーごとに発注書を作成
         Object.entries(vendorGroups).forEach(([vendor, vendorItems]) => {
           let orderText = `【${vendor} 向け発注書】\n`;
@@ -829,20 +884,25 @@
           orderText += vendorItems
             .map(({ name, qty }) => `・${name}: ${qty}個`)
             .join('\n');
-          
-          const blob = new Blob([orderText], {type: 'text/plain'});
+
+          const blob = new Blob([orderText], { type: 'text/plain' });
           const url = URL.createObjectURL(blob);
           const a = document.createElement('a');
           a.href = url;
           a.download = `発注書_${vendor}_${dateStr.replace(/\//g, '')}.txt`;
           a.click();
-          
+
           // 少し間隔を空ける（ブラウザのダウンロードブロック対策）
-          setTimeout(() => {}, 300);
+          setTimeout(() => { }, 300);
         });
-        
+
         showSnackbar(`${Object.keys(vendorGroups).length}社の発注書がダウンロードされました`, "success");
       }
+
+      // 注文完了後にカートをクリア
+      cart = {};
+      updateCartDisplay();
+      renderItems();
     }
     
     // ページ読み込み時に初期化
