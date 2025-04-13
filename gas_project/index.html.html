@@ -749,63 +749,22 @@
       }
       
       const now = new Date();
-      const dateStr = now.toLocaleDateString('ja-JP');
-      const timeStr = now.toLocaleTimeString('ja-JP');
+      const orderText = `【点眼薬・医療資材 発注書】\n` +
+                       `発注日時: ${now.toLocaleDateString('ja-JP')} ${now.toLocaleTimeString('ja-JP')}\n` +
+                       `発注者: ${requester}\n\n` +
+                       `■ 発注内容\n` +
+                       Object.entries(cart)
+                         .map(([name, qty]) => `・${name}: ${qty}個`)
+                         .join('\n');
       
-      if (mode === 'all') {
-        // すべてまとめて一つの発注書を作成
-        let orderText = `【点眼薬・医療資材 発注書】\n`;
-        orderText += `発注日時: ${dateStr} ${timeStr}\n`;
-        orderText += `発注者: ${requester}\n\n`;
-        orderText += `■ 発注内容\n`;
-        orderText += Object.entries(cart)
-          .map(([name, qty]) => `・${name}: ${qty}個`)
-          .join('\n');
-        
-        const blob = new Blob([orderText], {type: 'text/plain'});
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `発注書_${dateStr.replace(/\//g, '')}.txt`;
-        a.click();
-        
-        showSnackbar('発注書がダウンロードされました', "success");
-      } else if (mode === 'byVendor') {
-        // ベンダー別に発注書を作成
-        const vendorGroups = {};
-        
-        // カート内の商品をベンダーごとにグループ化
-        Object.entries(cart).forEach(([name, qty]) => {
-          const item = items.find(i => i.name === name);
-          const vendor = item?.vendor || "不明";
-          
-          if (!vendorGroups[vendor]) {
-            vendorGroups[vendor] = [];
-          }
-          
-          vendorGroups[vendor].push({ name, qty, item });
-        });
-        
-        // 各ベンダーごとに発注書を作成
-        Object.entries(vendorGroups).forEach(([vendor, vendorItems]) => {
-          let orderText = `【${vendor} 向け発注書】\n`;
-          orderText += `発注日時: ${dateStr} ${timeStr}\n`;
-          orderText += `発注者: ${requester}\n\n`;
-          orderText += `■ 発注内容\n`;
-          orderText += vendorItems
-            .map(({ name, qty }) => `・${name}: ${qty}個`)
-            .join('\n');
-          
-          const blob = new Blob([orderText], {type: 'text/plain'});
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = `発注書_${vendor}_${dateStr.replace(/\//g, '')}.txt`;
-          a.click();
-        });
-        
-        showSnackbar(`${Object.keys(vendorGroups).length}社の発注書がダウンロードされました`, "success");
-      }
+      const blob = new Blob([orderText], {type: 'text/plain'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `発注書_${now.toLocaleDateString('ja-JP').replace(/\//g, '')}.txt`;
+      a.click();
+
+      showSnackbar('発注書がダウンロードされました', "success");
     }
     
     // ページ読み込み時に初期化
